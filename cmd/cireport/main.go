@@ -97,6 +97,10 @@ func main() {
 		if output == "html" {
 			printHTML(j, report)
 		} else {
+			if report.result == "SUCCESS" {
+				// Show only failures
+				continue
+			}
 			printText(j, report)
 		}
 
