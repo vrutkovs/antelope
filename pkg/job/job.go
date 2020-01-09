@@ -21,7 +21,12 @@ type Job struct {
 }
 
 func (j Job) baseURL() string {
-	return "https://storage.googleapis.com/origin-ci-test/logs/release-openshift-ocp-installer-" + j.Name + "-" + j.Target + "/" + j.ID
+	prefix := "release-openshift-ocp-installer"
+	if j.Target == "4.1" {
+		// Pre-4.2 builds have "-origin-" prefix
+		prefix = "release-openshift-origin-installer"
+	}
+	return "https://storage.googleapis.com/origin-ci-test/logs/" + prefix + "-" + j.Name + "-" + j.Target + "/" + j.ID
 }
 
 func (j *Job) fetch(file string) (io.Reader, error) {
