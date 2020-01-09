@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/shiftstack/gazelle/pkg/cache"
@@ -103,7 +104,7 @@ func (j Job) Nodes() (io.Reader, error) {
 }
 
 func (j Job) JobURL() string {
-	return "https://prow.svc.ci.openshift.org/view/gcs/origin-ci-test/logs/release-openshift-ocp-installer-" + j.Name + "-" + j.Target + "/" + j.ID
+	return strings.Replace(j.baseURL(), "storage.googleapis.com", "prow.svc.ci.openshift.org/view/gcs", 1)
 }
 
 func (j Job) JUnitURL() (string, error) {
