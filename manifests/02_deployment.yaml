@@ -29,9 +29,6 @@ spec:
         - image: "quay.io/vrutkovs/antelope:master"
           imagePullPolicy: Always
           name: antelope
-          envFrom:
-            - secretRef:
-                name: antelope
           ports:
             - containerPort: 8080
               protocol: TCP
