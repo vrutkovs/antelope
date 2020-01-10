@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/vrutkovs/antelope/pkg/gcs"
 	"github.com/vrutkovs/antelope/pkg/job"
+	"github.com/vrutkovs/antelope/pkg/rca"
 )
 
 func (s *Settings) listJobIDs(c *gin.Context) {
@@ -86,4 +88,61 @@ func (s *Settings) getJobInfo(c *gin.Context) {
 		"artifacts":     artifactsSubdir,
 		"build_log_url": buildLogUrl,
 	})
+}
+
+func (s *Settings) getRCAForJob(c *gin.Context) {
+	jobName := c.Params.ByName("name")
+	if len(jobName) == 0 {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+	strJobId := c.Params.ByName("id")
+	if len(strJobId) == 0 {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+	jobId, err := strconv.Atoi(strJobId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	j := &job.Job{
+		Name:   jobName,
+		ID:     jobId,
+		Bucket: s.GcsBucket,
+		Cache:  s.Cache,
+	}
+	if err := j.GetBasicInfo(); err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	failures, errs := rca.Find(j)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// panic at the first error
+	go func() {
+		for err := range errs {
+			panic(err)
+		}
+		wg.Done()
+	}()
+
+	var (
+		testFailures  []string
+		infraFailures []string
+	)
+	for failure := range failures {
+		if failure.IsInfra() {
+			infraFailures = append(infraFailures, failure.String())
+		}
+		testFailures = append(testFailures, failure.String())
+	}
+
+	// Wait for the error handling to occur
+	wg.Wait()
+
+	c.JSON(http.StatusOK, testFailures)
 }

@@ -8,28 +8,8 @@ import (
 var (
 	rules = []Rule{
 		infraFailureIfMatchBuildLogs(
-			"to become ready: unexpected state 'ERROR', wanted target 'ACTIVE'. last error",
-			CauseErroredVM,
-		),
-
-		infraFailureIfMatchBuildLogs(
-			"The volume is in error status. Please check with your cloud admin",
-			CauseErroredVolume,
-		),
-
-		infraFailureIfMatchBuildLogs(
-			"Cluster operator authentication Progressing is True with ProgressingWellKnownNotReady: Progressing: got '404 Not Found' status while trying to GET the OAuth well-known",
-			CauseClusterTimeout,
-		),
-
-		infraFailureIfMatchMachines(
-			`"machine.openshift.io/instance-state": "ERROR"`,
-			CauseErroredVM,
-		),
-
-		infraFailureIfMatchNodes(
-			"ERROR",
-			CauseErroredVM,
+			"level=fatal msg=\"Bootstrap failed to complete",
+			CauseBootstrapTimeout,
 		),
 
 		failedTests,

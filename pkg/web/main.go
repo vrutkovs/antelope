@@ -25,4 +25,5 @@ func SetGinRoutes(r *gin.Engine) {
 	// Add job route
 	r.GET("/job/:name", s.listJobIDs)
 	r.GET("/job/:name/:id", s.getJobInfo)
+	r.GET("/job/:name/:id/rca", s.getRCAForJob)
 }
