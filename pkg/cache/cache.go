@@ -2,17 +2,22 @@ package cache
 
 import (
 	"bytes"
+	"context"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"sync"
+
+	"cloud.google.com/go/storage"
+	"github.com/vrutkovs/antelope/pkg/gcs"
 )
 
 type Cache struct {
 	sync.Mutex
 	cache map[string][]byte
+	ctx   context.Context
 
-	client http.Client
+	Bucket *storage.BucketHandle
+	Job    string
+	ID     int
 }
 
 func (c *Cache) Get(url string) (io.Reader, error) {
@@ -22,6 +27,7 @@ func (c *Cache) Get(url string) (io.Reader, error) {
 	// Initialise the map if this is the first call
 	if c.cache == nil {
 		c.cache = make(map[string][]byte)
+		c.ctx = context.Background()
 	}
 
 	// Return the cached content if it's available
@@ -29,22 +35,8 @@ func (c *Cache) Get(url string) (io.Reader, error) {
 		return bytes.NewReader(r), nil
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		io.Copy(ioutil.Discard, res.Body)
-		return nil, ErrUnexpectedStatusCode{url, res.StatusCode}
-	}
-
-	b, err := ioutil.ReadAll(res.Body)
+	// Fetch real file from gcs
+	b, err := gcs.FetchFile(c.Bucket, c.ctx, url)
 	if err != nil {
 		return nil, err
 	}

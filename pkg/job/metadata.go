@@ -32,3 +32,28 @@ func (m *metadata) UnmarshalJSON(src []byte) error {
 
 	return nil
 }
+
+type templateinstance struct {
+	Items []struct {
+		Spec struct {
+			Template struct {
+				Parameters []struct {
+					Name  string
+					Value string
+				}
+			}
+		}
+	}
+}
+
+// UnmarshalJSON implements json.Unmarshal for templateinstance. The purpose is to get template
+// params like cluster type
+func (t *templateinstance) UnmarshalJSON(src []byte) error {
+	inst := templateinstance{}
+	err := json.Unmarshal(src, &inst)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

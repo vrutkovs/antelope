@@ -2,43 +2,40 @@ package job
 
 import (
 	"bufio"
+	"cloud.google.com/go/storage"
 	"encoding/json"
+	"fmt"
 	"io"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/vrutkovs/antelope/pkg/cache"
 )
 
 type Job struct {
-	Name   string
-	Target string
-	ID     string
+	Name string
+	ID   string
 
-	client http.Client
+	Bucket *storage.BucketHandle
 
-	cache *cache.Cache
+	cache    *cache.Cache
+	testType string
 }
 
-func (j Job) baseURL() string {
-	prefix := "release-openshift-ocp-installer"
-	if j.Target == "4.1" {
-		// Pre-4.2 builds have "-origin-" prefix
-		prefix = "release-openshift-origin-installer"
-	}
-	return "https://storage.googleapis.com/origin-ci-test/logs/" + prefix + "-" + j.Name + "-" + j.Target + "/" + j.ID
+func (j *Job) subPath(path string) string {
+	return j.Name + "/" + j.ID + "/" + path
 }
 
 func (j *Job) fetch(file string) (io.Reader, error) {
 	if j.cache == nil {
-		j.cache = new(cache.Cache)
+		j.cache = &cache.Cache{
+			Bucket: j.Bucket,
+		}
 	}
 	return j.cache.Get(file)
 }
 
 func (j Job) StartTime() (time.Time, error) {
-	f, err := j.fetch(j.baseURL() + "/started.json")
+	f, err := j.fetch(j.subPath("/started.json"))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -52,7 +49,7 @@ func (j Job) StartTime() (time.Time, error) {
 }
 
 func (j Job) FinishTime() (time.Time, error) {
-	f, err := j.fetch(j.baseURL() + "/finished.json")
+	f, err := j.fetch(j.subPath("/finished.json"))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -65,8 +62,25 @@ func (j Job) FinishTime() (time.Time, error) {
 	return finished.time, nil
 }
 
+func (j Job) GetClusterType() (string, error) {
+	f, err := j.fetch(j.subPath("artifacts/build-resources/templateinstances.json"))
+	if err != nil {
+		return "", err
+	}
+	var inst templateinstance
+	if err := json.NewDecoder(f).Decode(&inst); err != nil {
+		return "", err
+	}
+	for _, params := range inst.Items[0].Spec.Template.Parameters {
+		if params.Name == "CLUSTER_TYPE" {
+			return params.Value, nil
+		}
+	}
+	return "", fmt.Errorf("Failed to find cluster type: %s", "no CLUSTER_TYPE param found")
+}
+
 func (j Job) Result() (string, error) {
-	f, err := j.fetch(j.baseURL() + "/finished.json")
+	f, err := j.fetch(j.subPath("/finished.json"))
 	if err != nil {
 		return "", err
 	}
@@ -79,32 +93,16 @@ func (j Job) Result() (string, error) {
 	return finished.result, nil
 }
 
-func (j Job) BuildLogURL() string {
-	return j.baseURL() + "/build-log.txt"
-}
-
 func (j Job) BuildLog() (io.Reader, error) {
-	return j.fetch(j.BuildLogURL())
-}
-
-func (j Job) MachinesURL() string {
-	return j.baseURL() + "/artifacts/" + j.Name + "/machines.json"
+	return j.fetch(j.subPath("/build-log.txt"))
 }
 
 func (j Job) Machines() (io.Reader, error) {
-	return j.fetch(j.MachinesURL())
-}
-
-func (j Job) NodesURL() string {
-	return j.baseURL() + "/artifacts/" + j.Name + "/openstack_nodes.log"
+	return j.fetch(j.subPath("/artifacts" + j.testType + "/machines.json"))
 }
 
 func (j Job) Nodes() (io.Reader, error) {
-	return j.fetch(j.NodesURL())
-}
-
-func (j Job) JobURL() string {
-	return strings.Replace(j.baseURL(), "storage.googleapis.com", "prow.svc.ci.openshift.org/view/gcs", 1)
+	return j.fetch(j.subPath("/artifacts" + j.testType + "/openstack_nodes.log"))
 }
 
 func (j Job) JUnitURL() (string, error) {
@@ -128,7 +126,7 @@ func (j Job) JUnitURL() (string, error) {
 		line := scanner.Text()
 		if len(line) >= targetLength && line[:len(target)] == target {
 			filename := line[len(target):]
-			return j.baseURL() + "/artifacts/" + j.Name + "/junit/" + filename, scanner.Err()
+			return "/artifacts/" + j.Name + "/junit/" + filename, scanner.Err()
 		}
 	}
 

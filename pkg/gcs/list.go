@@ -3,6 +3,7 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,4 +40,42 @@ func ListBucket(bucket *storage.BucketHandle, ctx context.Context, job string, s
 	// Sort jobIDs
 	sort.Sort(sort.Reverse(sort.IntSlice(jobIDs)))
 	return jobIDs[start:max], nil
+}
+
+func FetchFile(bucket *storage.BucketHandle, ctx context.Context, gcsPath string) ([]byte, error) {
+
+	if !hasFile(bucket, ctx, gcsPath) {
+		return nil, fmt.Errorf("No such path: %s", gcsPath)
+	}
+
+	rc, err := bucket.Object(gcsPath).NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+
+	data, err := ioutil.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func hasFile(bucket *storage.BucketHandle, ctx context.Context, path string) bool {
+	it := bucket.Objects(ctx, &storage.Query{
+		Prefix:    path,
+		Delimiter: "/",
+	})
+	for {
+		_, err := it.Next()
+
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return false
+		}
+		return true
+	}
+	return false
 }
