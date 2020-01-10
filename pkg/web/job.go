@@ -79,9 +79,11 @@ func (s *Settings) getJobInfo(c *gin.Context) {
 	// Skip errors here as these are being checked in GetBasicInfo
 	clusterType, _ := j.GetClusterType()
 	artifactsSubdir, _ := j.GetArtifactsSubdir()
+	buildLogUrl := j.GetBuildLogUrl()
 
 	c.JSON(http.StatusOK, gin.H{
-		"type":      clusterType,
-		"artifacts": artifactsSubdir,
+		"type":          clusterType,
+		"artifacts":     artifactsSubdir,
+		"build_log_url": buildLogUrl,
 	})
 }

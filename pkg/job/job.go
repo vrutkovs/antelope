@@ -13,6 +13,8 @@ import (
 	"github.com/vrutkovs/antelope/pkg/cache"
 )
 
+const storageURLPrefix = "https://storage.googleapis.com/origin-ci-test/logs/"
+
 type Job struct {
 	Name string
 	ID   int
@@ -133,6 +135,10 @@ func (j *Job) Result() (string, error) {
 	}
 
 	return finished.result, nil
+}
+
+func (j *Job) GetBuildLogUrl() string {
+	return storageURLPrefix + j.subPath("build-log.txt")
 }
 
 func (j *Job) BuildLog() (io.Reader, error) {
