@@ -122,7 +122,7 @@ func (j *Job) GetArtifactsSubdir() (string, error) {
 }
 
 func (j *Job) Result() (string, error) {
-	f, err := j.fetch(j.subPath("j.finished.json"))
+	f, err := j.fetch(j.subPath("finished.json"))
 	if err != nil {
 		return "", err
 	}
