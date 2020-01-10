@@ -61,10 +61,5 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
-      serviceAccountName: gitops-robot
       securityContext: {}
       terminationGracePeriodSeconds: 30
-      shareProcessNamespace: true
-      volumes:
-        - name: git-repo
-          emptyDir: {}
