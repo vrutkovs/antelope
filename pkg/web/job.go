@@ -3,17 +3,19 @@ package web
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 
-	"github.com/vrutkovs/antelope/pkg/cache"
+	"github.com/gin-gonic/gin"
+
 	"github.com/vrutkovs/antelope/pkg/gcs"
 	"github.com/vrutkovs/antelope/pkg/job"
 )
 
-func (s *Settings) job(c *gin.Context) {
+func (s *Settings) listJobIDs(c *gin.Context) {
 	jobName := c.Params.ByName("name")
 	if len(jobName) == 0 {
+		c.JSON(http.StatusNotFound, nil)
 		return
 	}
 
@@ -27,31 +29,59 @@ func (s *Settings) job(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Initialised cache\n")
-	cache := &cache.Cache{
-		Bucket: s.GcsBucket,
-	}
+	result := jobIDs[:0]
 
 	for _, id := range jobIDs {
 		j := &job.Job{
 			Name:   jobName,
 			ID:     id,
 			Bucket: s.GcsBucket,
-			Cache:  cache,
+			Cache:  s.Cache,
 		}
 		if err := j.GetBasicInfo(); err != nil {
-			fmt.Println(err)
+			// Skip the element, its running or broken
 			continue
 		}
 		fmt.Printf("Created job %s with ID %d\n", jobName, id)
-
-		jobClusterType, err := j.GetClusterType()
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Printf("type: %s\n", jobClusterType)
+		result = append(result, id)
 	}
-	c.JSON(http.StatusOK, jobIDs)
-	// TODO: fetch job status
-	// TODO: send job results via websocket
+	c.JSON(http.StatusOK, result)
+}
+
+func (s *Settings) getJobInfo(c *gin.Context) {
+	jobName := c.Params.ByName("name")
+	if len(jobName) == 0 {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+	strJobId := c.Params.ByName("id")
+	if len(strJobId) == 0 {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+	jobId, err := strconv.Atoi(strJobId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	j := &job.Job{
+		Name:   jobName,
+		ID:     jobId,
+		Bucket: s.GcsBucket,
+		Cache:  s.Cache,
+	}
+	if err := j.GetBasicInfo(); err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	// Skip errors here as these are being checked in GetBasicInfo
+	clusterType, _ := j.GetClusterType()
+	artifactsSubdir, _ := j.GetArtifactsSubdir()
+
+	c.JSON(http.StatusOK, gin.H{
+		"type":      clusterType,
+		"artifacts": artifactsSubdir,
+	})
 }
