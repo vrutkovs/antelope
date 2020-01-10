@@ -3,6 +3,7 @@ package cache
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -16,11 +17,10 @@ type Cache struct {
 	ctx   context.Context
 
 	Bucket *storage.BucketHandle
-	Job    string
-	ID     int
 }
 
 func (c *Cache) Get(url string) (io.Reader, error) {
+	fmt.Printf("cache: fetching url %s\n", url)
 	c.Lock()
 	defer c.Unlock()
 
@@ -42,6 +42,7 @@ func (c *Cache) Get(url string) (io.Reader, error) {
 	}
 
 	c.cache[url] = b
+	fmt.Printf("Saved output in cache %s\n", url)
 
 	return bytes.NewReader(b), nil
 }

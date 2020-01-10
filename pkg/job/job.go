@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"cloud.google.com/go/storage"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/vrutkovs/antelope/pkg/cache"
@@ -13,29 +15,26 @@ import (
 
 type Job struct {
 	Name string
-	ID   string
+	ID   int
 
 	Bucket *storage.BucketHandle
+	Cache  *cache.Cache
 
-	cache    *cache.Cache
-	testType string
+	artifactsSubdir string
+	clusterType     string
 }
 
 func (j *Job) subPath(path string) string {
-	return j.Name + "/" + j.ID + "/" + path
+	return j.Name + "/" + strconv.Itoa(j.ID) + "/" + path
 }
 
 func (j *Job) fetch(file string) (io.Reader, error) {
-	if j.cache == nil {
-		j.cache = &cache.Cache{
-			Bucket: j.Bucket,
-		}
-	}
-	return j.cache.Get(file)
+	fmt.Printf("job: Fetching %s\n", file)
+	return j.Cache.Get(file)
 }
 
-func (j Job) StartTime() (time.Time, error) {
-	f, err := j.fetch(j.subPath("/started.json"))
+func (j *Job) StartTime() (time.Time, error) {
+	f, err := j.fetch(j.subPath("started.json"))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -48,8 +47,8 @@ func (j Job) StartTime() (time.Time, error) {
 	return started.time, nil
 }
 
-func (j Job) FinishTime() (time.Time, error) {
-	f, err := j.fetch(j.subPath("/finished.json"))
+func (j *Job) FinishTime() (time.Time, error) {
+	f, err := j.fetch(j.subPath("finished.json"))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -62,25 +61,68 @@ func (j Job) FinishTime() (time.Time, error) {
 	return finished.time, nil
 }
 
-func (j Job) GetClusterType() (string, error) {
+func (j *Job) GetClusterType() (string, error) {
+	if j.artifactsSubdir != "" {
+		return j.artifactsSubdir, nil
+	}
+
 	f, err := j.fetch(j.subPath("artifacts/build-resources/templateinstances.json"))
 	if err != nil {
 		return "", err
 	}
-	var inst templateinstance
-	if err := json.NewDecoder(f).Decode(&inst); err != nil {
+
+	var tParams templateParams
+	if err := json.NewDecoder(f).Decode(&tParams); err != nil {
 		return "", err
 	}
-	for _, params := range inst.Items[0].Spec.Template.Parameters {
+	for _, params := range tParams.Parameters {
 		if params.Name == "CLUSTER_TYPE" {
+			j.clusterType = params.Value
 			return params.Value, nil
 		}
 	}
 	return "", fmt.Errorf("Failed to find cluster type: %s", "no CLUSTER_TYPE param found")
 }
 
-func (j Job) Result() (string, error) {
-	f, err := j.fetch(j.subPath("/finished.json"))
+func (j *Job) GetBasicInfo() error {
+	var err error
+	fmt.Printf("Fetching basic info for %s #%d\n", j.Name, j.ID)
+	if _, err = j.FinishTime(); err != nil {
+		return errors.New("Test is not yet complete, skipping")
+	}
+	if _, err = j.GetClusterType(); err != nil {
+		return fmt.Errorf("Failed to fetch cluster type: %s", err)
+	}
+	if _, err = j.GetArtifactsSubdir(); err != nil {
+		return fmt.Errorf("Failed to find artifacts subdir: %s", err)
+	}
+	return nil
+}
+
+func (j *Job) GetArtifactsSubdir() (string, error) {
+	if j.artifactsSubdir != "" {
+		return j.artifactsSubdir, nil
+	}
+
+	f, err := j.fetch(j.subPath("artifacts/build-resources/templateinstances.json"))
+	if err != nil {
+		return "", err
+	}
+	var tParams templateParams
+	if err := json.NewDecoder(f).Decode(&tParams); err != nil {
+		return "", err
+	}
+	for _, params := range tParams.Parameters {
+		if params.Name == "JOB_NAME_SAFE" {
+			j.artifactsSubdir = params.Value
+			return params.Value, nil
+		}
+	}
+	return "", fmt.Errorf("Failed to find cluster type: %s", "no CLUSTER_TYPE param found")
+}
+
+func (j *Job) Result() (string, error) {
+	f, err := j.fetch(j.subPath("j.finished.json"))
 	if err != nil {
 		return "", err
 	}
@@ -93,19 +135,19 @@ func (j Job) Result() (string, error) {
 	return finished.result, nil
 }
 
-func (j Job) BuildLog() (io.Reader, error) {
-	return j.fetch(j.subPath("/build-log.txt"))
+func (j *Job) BuildLog() (io.Reader, error) {
+	return j.fetch(j.subPath("build-log.txt"))
 }
 
-func (j Job) Machines() (io.Reader, error) {
-	return j.fetch(j.subPath("/artifacts" + j.testType + "/machines.json"))
+func (j *Job) Machines() (io.Reader, error) {
+	return j.fetch(j.subPath("artifacts" + j.artifactsSubdir + "/machines.json"))
 }
 
-func (j Job) Nodes() (io.Reader, error) {
-	return j.fetch(j.subPath("/artifacts" + j.testType + "/openstack_nodes.log"))
+func (j *Job) Nodes() (io.Reader, error) {
+	return j.fetch(j.subPath("artifacts" + j.artifactsSubdir + "/openstack_nodes.log"))
 }
 
-func (j Job) JUnitURL() (string, error) {
+func (j *Job) JUnitURL() (string, error) {
 	const (
 		target       = "Writing JUnit report to /tmp/artifacts/junit/"
 		targetLength = len(target)
@@ -137,7 +179,7 @@ func (j Job) JUnitURL() (string, error) {
 	return "", io.EOF
 }
 
-func (j Job) JUnit() (io.Reader, error) {
+func (j *Job) JUnit() (io.Reader, error) {
 	u, err := j.JUnitURL()
 	if err != nil {
 		return nil, err

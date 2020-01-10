@@ -42,12 +42,15 @@ func ListBucket(bucket *storage.BucketHandle, ctx context.Context, job string, s
 	return jobIDs[start:max], nil
 }
 
-func FetchFile(bucket *storage.BucketHandle, ctx context.Context, gcsPath string) ([]byte, error) {
+func FetchFile(bucket *storage.BucketHandle, ctx context.Context, url string) ([]byte, error) {
+	gcsPath := basePrefix + url
+	gcsPath = strings.Replace(gcsPath, "//", "/", 99)
 
 	if !hasFile(bucket, ctx, gcsPath) {
 		return nil, fmt.Errorf("No such path: %s", gcsPath)
 	}
 
+	fmt.Printf("GCS: fetching %s\n", gcsPath)
 	rc, err := bucket.Object(gcsPath).NewReader(ctx)
 	if err != nil {
 		return nil, err
