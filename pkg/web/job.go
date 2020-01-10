@@ -137,6 +137,7 @@ func (s *Settings) getRCAForJob(c *gin.Context) {
 	for failure := range failures {
 		if failure.IsInfra() {
 			infraFailures = append(infraFailures, failure.String())
+			continue
 		}
 		testFailures = append(testFailures, failure.String())
 	}
@@ -144,5 +145,8 @@ func (s *Settings) getRCAForJob(c *gin.Context) {
 	// Wait for the error handling to occur
 	wg.Wait()
 
-	c.JSON(http.StatusOK, testFailures)
+	c.JSON(http.StatusOK, gin.H{
+		"rca":          infraFailures,
+		"failed_tests": testFailures,
+	})
 }

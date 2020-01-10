@@ -169,7 +169,7 @@ func (j *Job) JUnitURL() (string, error) {
 		line := scanner.Text()
 		if len(line) >= targetLength && line[:len(target)] == target {
 			filename := line[len(target):]
-			return "/artifacts/" + j.Name + "/junit/" + filename, scanner.Err()
+			return j.subPath("/artifacts/" + j.artifactsSubdir + "/junit/" + filename), scanner.Err()
 		}
 	}
 
