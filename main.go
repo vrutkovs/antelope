@@ -20,7 +20,7 @@ func job(c *gin.Context) {
 	// TODO: fetch latest job ID
 	// TODO: paginate
 	// TODO: fetch job status
-	// TODO: send job results via webhook
+	// TODO: send job results via websocket
 }
 
 func main() {
