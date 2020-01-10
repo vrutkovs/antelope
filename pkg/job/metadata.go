@@ -34,6 +34,7 @@ func (m *metadata) UnmarshalJSON(src []byte) error {
 }
 
 type templateParams struct {
+	Name       string
 	Parameters []struct {
 		Name  string
 		Value string
@@ -45,6 +46,9 @@ type templateParams struct {
 func (t *templateParams) UnmarshalJSON(src []byte) error {
 	var data struct {
 		Items []struct {
+			Metadata struct {
+				Name string
+			}
 			Spec struct {
 				Template struct {
 					Parameters []struct {
@@ -61,6 +65,7 @@ func (t *templateParams) UnmarshalJSON(src []byte) error {
 	}
 
 	*t = templateParams{
+		Name:       data.Items[0].Metadata.Name,
 		Parameters: data.Items[0].Spec.Template.Parameters,
 	}
 

@@ -114,13 +114,8 @@ func (j *Job) GetArtifactsSubdir() (string, error) {
 	if err := json.NewDecoder(f).Decode(&tParams); err != nil {
 		return "", err
 	}
-	for _, params := range tParams.Parameters {
-		if params.Name == "JOB_NAME_SAFE" {
-			j.artifactsSubdir = params.Value
-			return params.Value, nil
-		}
-	}
-	return "", fmt.Errorf("Failed to find cluster type: %s", "no CLUSTER_TYPE param found")
+	j.artifactsSubdir = tParams.Name
+	return j.artifactsSubdir, nil
 }
 
 func (j *Job) Result() (string, error) {
