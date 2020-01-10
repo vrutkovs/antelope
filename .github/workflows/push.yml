@@ -19,7 +19,7 @@ jobs:
     - uses: vrutkovs/action-bin-container@master
       with:
         source_image: antelope:src
-        source_path: /opt/app-root/cireport
+        source_path: /opt/app-root/gobinary
         binary_base: registry.access.redhat.com/ubi8/ubi-minimal:latest
         binary_path: /usr/local/bin/antelope
         binary_image: quay.io/vrutkovs/antelope:${{ steps.extract_branch.outputs.branch }}
