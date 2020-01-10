@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shiftstack/gazelle/pkg/cache"
+	"github.com/vrutkovs/antelope/pkg/cache"
 )
 
 type Job struct {

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/pierreprinetti/go-sequence"
-	"github.com/shiftstack/gazelle/pkg/job"
-	"github.com/shiftstack/gazelle/pkg/rca"
+	"github.com/vrutkovs/antelope/pkg/job"
+	"github.com/vrutkovs/antelope/pkg/rca"
 )
 
 var (

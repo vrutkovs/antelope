@@ -1,4 +1,4 @@
-module github.com/shiftstack/gazelle
+module github.com/vrutkovs/antelope
 
 go 1.13
 
