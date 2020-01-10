@@ -1,0 +1,18 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: antelope
+  namespace: antelope
+spec:
+  host: antelope.apps.vrutkovs-okd.devcluster.openshift.com
+  subdomain: ''
+  to:
+    kind: Service
+    name: antelope
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
