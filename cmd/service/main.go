@@ -11,6 +11,18 @@ func health(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
+func job(c *gin.Context) {
+	jobName := c.Params.ByName("name")
+	if len(jobName) == 0 {
+		return
+	}
+
+	// TODO: fetch latest job ID
+	// TODO: paginate
+	// TODO: fetch job status
+	// TODO: send job results via webhook
+}
+
 func main() {
 	r := gin.New()
 
@@ -23,6 +35,8 @@ func main() {
 		gin.Recovery(),
 	)
 	r.GET("/health", health)
+
+	r.GET("/job/:name", job)
 
 	r.Run(":8080")
 }
