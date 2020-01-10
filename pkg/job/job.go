@@ -62,8 +62,8 @@ func (j *Job) FinishTime() (time.Time, error) {
 }
 
 func (j *Job) GetClusterType() (string, error) {
-	if j.artifactsSubdir != "" {
-		return j.artifactsSubdir, nil
+	if j.clusterType != "" {
+		return j.clusterType, nil
 	}
 
 	f, err := j.fetch(j.subPath("artifacts/build-resources/templateinstances.json"))
