@@ -7,7 +7,7 @@ import (
 )
 
 // health is k8s endpoint for liveness check
-func health(c *gin.Context) {
+func healthz(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
@@ -31,10 +31,10 @@ func main() {
 
 	// Don't log k8s health endpoint
 	r.Use(
-		gin.LoggerWithWriter(gin.DefaultWriter, "/health"),
+		gin.LoggerWithWriter(gin.DefaultWriter, "/healthz"),
 		gin.Recovery(),
 	)
-	r.GET("/health", health)
+	r.GET("/healthz", healthz)
 
 	r.GET("/job/:name", job)
 
