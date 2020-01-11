@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gin-gonic/contrib/static"
+	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 
@@ -16,8 +16,8 @@ func healthz(c *gin.Context) {
 func main() {
 	r := gin.New()
 
-	// Server static HTML
-	r.Use(static.Serve("/", static.LocalFile("./html", true)))
+	// Allow all
+	r.Use(cors.Default())
 
 	// Don't log k8s health endpoint
 	r.Use(
