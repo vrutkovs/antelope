@@ -24,7 +24,7 @@ func (s *Settings) listJobIDs(c *gin.Context) {
 	ctx := context.Background()
 
 	// TODO: don't filter output in ListBucket, use LRU
-	jobIDs, err := gcs.ListBucket(s.GcsBucket, ctx, jobName, 0, 40)
+	jobIDs, err := gcs.ListBucket(s.GcsBucket, ctx, jobName, 0, 10)
 	fmt.Printf("Found JobIDs %d -> %d\n", jobIDs[len(jobIDs)-1], jobIDs[0])
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "{'message': 'internal error'}")
