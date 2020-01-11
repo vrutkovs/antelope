@@ -12,6 +12,11 @@ var (
 			CauseBootstrapTimeout,
 		),
 
+		infraFailureIfMatchBuildLogs(
+			"Throttling: Rate exceeded",
+			CauseBootstrapTimeout,
+		),
+
 		failedTests,
 	}
 )

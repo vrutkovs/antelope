@@ -3,13 +3,14 @@ package rca
 type Cause string
 
 const (
-	CauseBootstrapTimeout Cause = "Timeout waiting for cluster to bootstrap"
-	CauseClusterTimeout   Cause = "Timeout waiting for cluster to initialize"
+	CauseBootstrapTimeout  Cause = "Timeout waiting for cluster to bootstrap"
+	CauseClusterTimeout    Cause = "Timeout waiting for cluster to initialize"
+	CauseRateLimitExceeded Cause = "Throttling: Rate exceeded"
 )
 
 func (c Cause) IsInfra() bool {
 	switch c {
-	case CauseBootstrapTimeout, CauseClusterTimeout:
+	case CauseBootstrapTimeout, CauseClusterTimeout, CauseRateLimitExceeded:
 		return true
 	default:
 		return false
