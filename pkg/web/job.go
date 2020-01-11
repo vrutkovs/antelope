@@ -83,10 +83,17 @@ func (s *Settings) getJobInfo(c *gin.Context) {
 	artifactsSubdir, _ := j.GetArtifactsSubdir()
 	buildLogUrl := j.GetBuildLogUrl()
 
+	jobPassed := false
+	if v, err := j.Result(); err == nil && v == "SUCCESS" {
+		jobPassed = true
+	}
+
 	c.JSON(http.StatusOK, gin.H{
+		"id":            jobId,
 		"type":          clusterType,
 		"artifacts":     artifactsSubdir,
 		"build_log_url": buildLogUrl,
+		"success":       jobPassed,
 	})
 }
 
