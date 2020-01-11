@@ -30,7 +30,7 @@ spec:
           imagePullPolicy: Always
           name: antelope
           ports:
-            - containerPort: 8080
+            - containerPort: 3000
               protocol: TCP
           livenessProbe:
             httpGet:
