@@ -88,43 +88,6 @@ func (s *Settings) getJobInfo(c *gin.Context) {
 		jobPassed = true
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":            jobId,
-		"type":          clusterType,
-		"artifacts":     artifactsSubdir,
-		"build_log_url": buildLogUrl,
-		"success":       jobPassed,
-	})
-}
-
-func (s *Settings) getRCAForJob(c *gin.Context) {
-	jobName := c.Params.ByName("name")
-	if len(jobName) == 0 {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-	strJobId := c.Params.ByName("id")
-	if len(strJobId) == 0 {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-	jobId, err := strconv.Atoi(strJobId)
-	if err != nil {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-
-	j := &job.Job{
-		Name:   jobName,
-		ID:     jobId,
-		Bucket: s.GcsBucket,
-		Cache:  s.Cache,
-	}
-	if err := j.GetBasicInfo(); err != nil {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-
 	failures, errs := rca.Find(j)
 
 	var wg sync.WaitGroup
@@ -152,8 +115,18 @@ func (s *Settings) getRCAForJob(c *gin.Context) {
 	// Wait for the error handling to occur
 	wg.Wait()
 
+	var infraFailure string
+	if len(infraFailures) > 0 {
+		infraFailure = infraFailures[0]
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"rca":          infraFailures,
-		"failed_tests": testFailures,
+		"id":            jobId,
+		"type":          clusterType,
+		"artifacts":     artifactsSubdir,
+		"build_log_url": buildLogUrl,
+		"success":       jobPassed,
+		"infra_failure": infraFailure,
+		"failed_tests":  testFailures,
 	})
 }
