@@ -5,6 +5,7 @@ metadata:
   namespace: antelope
 spec:
   host: antelope.apps.vrutkovs-okd.devcluster.openshift.com
+  path: /api
   subdomain: ''
   to:
     kind: Service
